@@ -3,52 +3,68 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\User;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
 class UserController extends Controller
 {
+    // Show user creation form
     public function create()
     {
-        return view('users.create');   // create form file
+        return view('users.create');
     }
 
+    // Store new user
     public function store(Request $request)
+{
+    $validated = $request->validate([
+        'first_name' => 'required|max:100',
+        'last_name' => 'nullable|max:100',
+        'email' => 'required|email|unique:users,email',
+        'phone' => 'nullable|max:20',
+        'role' => 'required|in:admin,manager,recruiter,client',
+        'password' => 'required|min:6',
+        'is_active' => 'nullable|boolean',
+        'timezone' => 'nullable|max:50',
+    ]);
+
+    $validated['id'] = (string) \Illuminate\Support\Str::uuid();
+    $validated['password_hash'] = bcrypt($validated['password']);
+    unset($validated['password']);
+    $validated['is_active'] = $request->has('is_active') ? 1 : 0;
+
+    User::create($validated);
+
+    return redirect()->route('users.index')->with('success', 'User created successfully!');
+}
+
+    // List users with filters
+    public function index(Request $request)
     {
-        $validated = $request->validate([
-            'first_name' => 'required|string|max:100',
-            'last_name' => 'nullable|string|max:100',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'nullable|string|max:20',
-            'role' => 'required|in:admin,manager,recruiter,client',
-            'password' => 'required|string|min:8',
-            'is_active' => 'nullable|boolean',
-            'timezone' => 'nullable|string|max:50',
-        ]);
+        $query = User::query();
 
-        $isActive = $request->input('is_active', 0) ? true : false;
+        // Search filter
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
 
-        User::create([
-            'id' => Str::uuid(),
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'] ?? null,
-            'email' => $validated['email'],
-            'phone' => $validated['phone'] ?? null,
-            'role' => $validated['role'],
-            'password_hash' => Hash::make($validated['password']),
-            'is_active' => $isActive,
-            'timezone' => $validated['timezone'] ?? 'Asia/Kolkata',
-        ]);
+        // Role filter
+        if ($request->filled('role')) {
+            $query->where('role', $request->input('role'));
+        }
 
-        return redirect()->route('users.index')
-                         ->with('success', 'User created successfully!');
-    }
+        // Status filter
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->input('status'));
+        }
 
-    public function index()
-    {
-        $users = User::all();
+        $users = $query->orderBy('created_at', 'desc')->get();
+
         return view('users.user_view', compact('users'));
     }
 }
-

@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User List</title>
+    <title>Recruiters List</title>
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -198,16 +198,6 @@
             font-size: 0.875rem;
         }
         
-        .btn-view {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            box-shadow: 0 4px 10px rgba(79, 172, 254, 0.3);
-        }
-        
-        .btn-view:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(79, 172, 254, 0.4);
-        }
-        
         .btn-edit {
             background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
             box-shadow: 0 4px 10px rgba(67, 233, 123, 0.3);
@@ -248,6 +238,10 @@
             background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
         }
         
+        .bg-recruiter {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+        
         /* Alert */
         .alert-success {
             background: linear-gradient(135deg, rgba(67, 233, 123, 0.1), rgba(56, 249, 215, 0.1));
@@ -283,13 +277,15 @@
     </style>
 </head>
 <body>
+
 <div class="container mt-4">
 
-    <div class="table_header d-flex justify-content-between align-items-center flex-wrap mb-3">
-        <h2>User List</h2>
+    <div class="table_header">
+        <h2>Recruiters List</h2>
+
         <a href="{{ route('users.create') }}" class="btn btn-primary">
             <span class="material-icons" style="vertical-align: middle; margin-right: 5px;">add</span>
-            Add New User
+            Add New Recruiter
         </a>
     </div>
 
@@ -302,15 +298,15 @@
 
     <!-- Filter Toggle Button -->
     <div style="margin-bottom: 1rem;">
-        <button type="button" class="btn btn-filter" id="toggleFilterBtn" onclick="toggleFilter()">
+        <button type="button" class="btn-filter" id="toggleFilterBtn" onclick="toggleFilter()">
             <span class="material-icons" style="vertical-align: middle; font-size: 18px;">filter_alt</span>
             Show Filters
         </button>
     </div>
 
-    <!-- Filter Section -->
+    <!-- Filter Section (Hidden by default) -->
     <div class="filter-section" id="filterSection" style="display: none;">
-        <form method="GET" action="{{ route('users.index') }}">
+        <form method="GET" action="{{ url('/admin/recruiters') }}">
             <div class="filter-row">
                 <!-- Search Box -->
                 <div class="filter-group">
@@ -318,26 +314,12 @@
                         <span class="material-icons" style="font-size: 16px;">search</span>
                         Search
                     </label>
-                    <div class="search-box position-relative">
+                    <div class="search-box">
+                        <span class="material-icons search-icon">search</span>
                         <input type="text" name="search" class="form-control" 
                                placeholder="Search by name or email..." 
                                value="{{ request('search') }}">
                     </div>
-                </div>
-
-                <!-- Role Filter -->
-                <div class="filter-group">
-                    <label class="filter-label">
-                        <span class="material-icons" style="font-size: 16px;">work</span>
-                        Role
-                    </label>
-                    <select name="role" class="form-select">
-                        <option value="">All Roles</option>
-                        <option value="admin" {{ request('role')=='admin'?'selected':'' }}>Admin</option>
-                        <option value="manager" {{ request('role')=='manager'?'selected':'' }}>Manager</option>
-                        <option value="recruiter" {{ request('role')=='recruiter'?'selected':'' }}>Recruiter</option>
-                        <option value="client" {{ request('role')=='client'?'selected':'' }}>Client</option>
-                    </select>
                 </div>
 
                 <!-- Status Filter -->
@@ -348,19 +330,19 @@
                     </label>
                     <select name="status" class="form-select">
                         <option value="">All Status</option>
-                        <option value="1" {{ request('status')==='1'?'selected':'' }}>Active</option>
-                        <option value="0" {{ request('status')==='0'?'selected':'' }}>Inactive</option>
+                        <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Active</option>
+                        <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Inactive</option>
                     </select>
                 </div>
 
                 <!-- Filter Buttons -->
-                <div class="filter-group d-flex gap-2 align-items-end">
+                <div class="filter-group" style="display: flex; gap: 0.5rem;">
                     <button type="submit" class="btn btn-filter">
-                        <span class="material-icons" style="vertical-align: middle;">done</span>
+                        <span class="material-icons" style="vertical-align: middle; font-size: 18px;">done</span>
                         Apply
                     </button>
-                    <a href="{{ route('users.index') }}" class="btn btn-reset">
-                        <span class="material-icons" style="vertical-align: middle;">refresh</span>
+                    <a href="{{ url('/admin/recruiters') }}" class="btn btn-reset">
+                        <span class="material-icons" style="vertical-align: middle; font-size: 18px;">refresh</span>
                         Reset
                     </a>
                 </div>
@@ -368,7 +350,7 @@
         </form>
     </div>
 
-    <!-- Users Table -->
+    <!-- Recruiters Table -->
     <table class="table table-bordered table-striped">
         <thead class="table-dark">
             <tr>
@@ -377,7 +359,7 @@
                 <th>Email</th>
                 <th>Phone</th>
                 <th>Role</th>
-                <th>Status</th>
+                <th>Active</th>
                 <th>Timezone</th>
                 <th>Created</th>
                 <th class="text-center">Actions</th>
@@ -385,31 +367,31 @@
         </thead>
 
         <tbody>
-            @forelse ($users as $user)
+            @forelse ($recruiters as $recruiter)
                 <tr>
                     <td>{{ $loop->iteration }}</td>
-                    <td>{{ $user->first_name }} {{ $user->last_name }}</td>
-                    <td>{{ $user->email }}</td>
-                    <td>{{ $user->phone }}</td>
-                    <td>{{ ucfirst($user->role) }}</td>
+                    <td>{{ $recruiter->first_name }} {{ $recruiter->last_name }}</td>
+                    <td>{{ $recruiter->email }}</td>
+                    <td>{{ $recruiter->phone }}</td>
+                    <td><span class="badge bg-recruiter">{{ ucfirst($recruiter->role) }}</span></td>
                     <td>
-                        @if($user->is_active)
+                        @if($recruiter->is_active)
                             <span class="badge bg-success">Active</span>
                         @else
                             <span class="badge bg-danger">Inactive</span>
                         @endif
                     </td>
-                    <td>{{ $user->timezone }}</td>
-                    <td>{{ $user->created_at->format('d M Y, h:i A') }}</td>
+                    <td>{{ $recruiter->timezone }}</td>
+                    <td>{{ $recruiter->created_at->format('d M Y, h:i A') }}</td>
                     <td>
-                        <div class="action-buttons d-flex gap-1 justify-content-center">
-                            <a href="{{ url('/users/view/'.$user->id) }}" class="btn-action btn-view" title="View">
-                                <span class="material-icons">visibility</span>
-                            </a>
-                            <a href="{{ url('/users/edit/'.$user->id) }}" class="btn-action btn-edit" title="Edit">
+                        <div class="action-buttons">
+                            <!-- Edit Button -->
+                            <a href="{{ route('admin.recruiters.edit', $recruiter->id) }}" class="btn-action btn-edit" title="Edit">
                                 <span class="material-icons">edit</span>
                             </a>
-                            <form action="{{ url('/users/delete/'.$user->id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
+
+                            <!-- Delete Button -->
+                            <form action="{{ route('admin.recruiters.delete', $recruiter->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this recruiter?');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn-action btn-delete" title="Delete">
@@ -421,9 +403,9 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="9" class="text-center py-5">
+                    <td colspan="9" class="text-center" style="padding: 2rem;">
                         <span class="material-icons" style="font-size: 48px; color: #94a3b8;">search_off</span>
-                        <p style="margin-top: 1rem; font-weight: 600; color: #64748b;">No users found</p>
+                        <p style="color: #64748b; margin-top: 1rem; font-weight: 600;">No recruiters found</p>
                     </td>
                 </tr>
             @endforelse
@@ -431,9 +413,9 @@
     </table>
 
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- JS -->
 <script>
 function toggleFilter() {
     const filterSection = document.getElementById('filterSection');
@@ -450,12 +432,13 @@ function toggleFilter() {
 
 // Show filters automatically if any filter is applied
 document.addEventListener('DOMContentLoaded', function() {
-    const hasFilters = {{ request()->hasAny(['search', 'role', 'status']) ? 'true' : 'false' }};
+    const hasFilters = {{ request()->hasAny(['search', 'status']) ? 'true' : 'false' }};
     if (hasFilters) {
         toggleFilter();
     }
 });
 </script>
+
 </body>
 </html>
 @endsection
